@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BMAD Local Live Board</title>
+  <style>
+    :root {
+      --bg-0: #060f1d;
+      --bg-1: #0c1c32;
+      --panel: #112640;
+      --line: #2b4f80;
+      --text: #eaf3ff;
+      --text-2: #a0b9d8;
+      --cyan: #3df6ff;
+      --mint: #56f3bb;
+      --amber: #ffc86b;
+      --red: #ff647a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(1100px 750px at 0% -10%, rgba(61,246,255,0.11), transparent 70%),
+        radial-gradient(900px 650px at 100% 0%, rgba(86,243,187,0.07), transparent 70%),
+        linear-gradient(145deg, var(--bg-0), var(--bg-1));
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.4px;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .panel {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: linear-gradient(160deg, rgba(17,38,64,0.9), rgba(17,38,64,0.72));
+      padding: 12px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    input, select {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #10243f;
+      color: var(--text);
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #143050;
+      color: var(--text);
+      padding: 0 12px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .primary {
+      border: 0;
+      background: linear-gradient(120deg, var(--cyan), #7df8ff);
+      color: #031420;
+    }
+
+    .status-line {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--text-2);
+      font-size: 13px;
+    }
+
+    .kpis {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px;
+      background: rgba(7, 18, 33, 0.6);
+    }
+
+    .kpi .label {
+      color: var(--text-2);
+      font-size: 12px;
+    }
+
+    .kpi .value {
+      margin-top: 3px;
+      font-size: 23px;
+      font-weight: 750;
+    }
+
+    .board {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(230px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .column {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(8, 20, 36, 0.63);
+      padding: 8px;
+      min-height: 220px;
+    }
+
+    .column-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-2);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .count {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 1px 8px;
+      font-size: 11px;
+    }
+
+    .card {
+      border: 1px solid #315885;
+      border-radius: 9px;
+      background: linear-gradient(160deg, rgba(20,48,80,0.86), rgba(16,38,63,0.75));
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.35;
+      display: grid;
+      gap: 6px;
+    }
+
+    .meta {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      color: var(--text-2);
+      font-size: 11px;
+    }
+
+    .pill {
+      border: 1px solid #41689a;
+      border-radius: 999px;
+      padding: 1px 7px;
+      white-space: nowrap;
+    }
+
+    .pill.bad {
+      border-color: var(--red);
+      color: #ffd9df;
+    }
+
+    .warnings {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .warn {
+      border: 1px solid #7c5421;
+      color: #ffdca1;
+      border-radius: 8px;
+      padding: 8px 9px;
+      font-size: 12px;
+      background: rgba(83, 50, 10, 0.34);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(43, 79, 128, 0.6);
+    }
+
+    th {
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-size: 12px;
+      color: var(--text-2);
+      background: rgba(9, 20, 34, 0.74);
+    }
+
+    .bar-wrap {
+      margin-top: 4px;
+      height: 7px;
+      width: 160px;
+      border-radius: 999px;
+      background: #18375c;
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--mint));
+    }
+  </style>
+</head>
+<body>
+  <h1>BMAD Local Live Board</h1>
+  <div class="hint">Reads epics and story statuses from local <code>_bmad-output</code> files (no GitHub dependency).</div>
+
+  <section class="panel">
+    <div class="controls">
+      <label>
+        BMAD Output Path
+        <input id="outputPath" value="/Users/serkan/Documents/ofchours/_bmad-output" />
+      </label>
+      <label>
+        Auto Refresh
+        <select id="autoRefresh">
+          <option value="off">Off</option>
+          <option value="15000">15s</option>
+          <option value="30000" selected>30s</option>
+          <option value="60000">60s</option>
+        </select>
+      </label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="refreshBtn">Refresh Now</button>
+      <button id="saveBtn">Save Settings</button>
+    </div>
+    <div class="status-line">
+      <span id="status">Ready.</span>
+      <span id="updatedAt">Last update: -</span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="warnings" id="warnings"></div>
+    <div class="board" id="board"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Epic</th>
+          <th>Progress</th>
+          <th>Stories</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="epicRows"></tbody>
+    </table>
+  </section>
+
+  <script>
+    const columns = [
+      { key: "backlog", title: "Backlog" },
+      { key: "ready-for-dev", title: "Ready" },
+      { key: "in-progress", title: "In Progress" },
+      { key: "review", title: "Review" },
+      { key: "done", title: "Done" }
+    ];
+
+    const outputPathEl = document.getElementById("outputPath");
+    const autoRefreshEl = document.getElementById("autoRefresh");
+    const statusEl = document.getElementById("status");
+    const updatedAtEl = document.getElementById("updatedAt");
+    const kpisEl = document.getElementById("kpis");
+    const warningsEl = document.getElementById("warnings");
+    const boardEl = document.getElementById("board");
+    const epicRowsEl = document.getElementById("epicRows");
+
+    let timer = null;
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = text;
+      statusEl.style.color = isError ? "var(--red)" : "var(--text-2)";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderKpis(data) {
+      const items = [
+        { label: "Epics", value: data.epic_count || 0 },
+        { label: "Stories", value: data.story_count || 0 },
+        { label: "Done", value: (data.stories_by_status || {}).done || 0 },
+        { label: "In Progress", value: (data.stories_by_status || {})["in-progress"] || 0 },
+        { label: "Review", value: (data.stories_by_status || {}).review || 0 },
+        { label: "Mismatches", value: data.status_mismatch_count || 0 }
+      ];
+
+      kpisEl.innerHTML = items.map(item => `
+        <article class="kpi">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderWarnings(data) {
+      const warnings = [];
+      if (Array.isArray(data.warnings)) warnings.push(...data.warnings);
+      if ((data.status_mismatch_count || 0) > 0) {
+        warnings.push("Some story statuses differ between sprint-status.yaml and story files.");
+      }
+      if ((data.missing_file_count || 0) > 0) {
+        warnings.push("Some story entries in sprint-status.yaml do not have a matching story markdown file.");
+      }
+
+      warningsEl.innerHTML = warnings.map(text => `<div class="warn">${escapeHtml(text)}</div>`).join("");
+    }
+
+    function renderBoard(data) {
+      const stories = Array.isArray(data.stories) ? data.stories : [];
+      const grouped = {};
+      columns.forEach(col => { grouped[col.key] = []; });
+
+      stories.forEach(story => {
+        const status = story.status || "backlog";
+        if (!grouped[status]) grouped[status] = [];
+        grouped[status].push(story);
+      });
+
+      boardEl.innerHTML = columns.map(col => {
+        const items = (grouped[col.key] || [])
+          .sort((a, b) => {
+            if (a.epic_number !== b.epic_number) return a.epic_number - b.epic_number;
+            return a.story_number - b.story_number;
+          })
+          .map(story => {
+            const mismatchPill = story.status_mismatch ? '<span class="pill bad">status mismatch</span>' : '';
+            const checklist = (story.checklist_total || 0) > 0
+              ? `<span class="pill">tasks ${story.checklist_done || 0}/${story.checklist_total || 0}</span>`
+              : "";
+            return `
+              <article class="card">
+                <div><strong>${escapeHtml(story.display_number)} ${escapeHtml(story.title)}</strong></div>
+                <div class="meta">
+                  <span class="pill">${escapeHtml(story.key)}</span>
+                  ${checklist}
+                  ${mismatchPill}
+                </div>
+              </article>
+            `;
+          }).join("");
+
+        return `
+          <section class="column">
+            <div class="column-title">${col.title}<span class="count">${(grouped[col.key] || []).length}</span></div>
+            ${items || '<div class="meta">No stories</div>'}
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderEpics(data) {
+      const epics = Array.isArray(data.epics) ? data.epics : [];
+      epicRowsEl.innerHTML = epics.map(epic => `
+        <tr>
+          <td><strong>Epic ${epic.number}</strong> - ${escapeHtml(epic.title)}</td>
+          <td>
+            ${epic.progress_percent}% (${epic.story_done}/${epic.story_total})
+            <div class="bar-wrap"><div class="bar" style="width:${epic.progress_percent}%"></div></div>
+          </td>
+          <td>${epic.story_total}</td>
+          <td>${escapeHtml(epic.status)}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function refresh() {
+      const output = outputPathEl.value.trim();
+      const query = output ? `?output=${encodeURIComponent(output)}` : "";
+
+      try {
+        setStatus("Loading local BMAD data...");
+        const response = await fetch(`/api/board${query}`);
+        if (!response.ok) {
+          throw new Error(`API ${response.status}`);
+        }
+        const data = await response.json();
+        renderKpis(data);
+        renderWarnings(data);
+        renderBoard(data);
+        renderEpics(data);
+        updatedAtEl.textContent = "Last update: " + new Date().toLocaleString();
+        setStatus(`Loaded ${data.story_count || 0} stories from local BMAD files.`);
+      } catch (error) {
+        setStatus(error.message || "Failed to load data", true);
+      }
+    }
+
+    function saveSettings() {
+      localStorage.setItem("bmad_local_board", JSON.stringify({
+        outputPath: outputPathEl.value.trim(),
+        autoRefresh: autoRefreshEl.value
+      }));
+      setStatus("Settings saved.");
+      applyAutoRefresh();
+    }
+
+    function loadSettings() {
+      const raw = localStorage.getItem("bmad_local_board");
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.outputPath) outputPathEl.value = parsed.outputPath;
+        if (parsed.autoRefresh) autoRefreshEl.value = parsed.autoRefresh;
+      } catch {
+      }
+    }
+
+    function applyAutoRefresh() {
+      if (timer) clearInterval(timer);
+      if (autoRefreshEl.value !== "off") {
+        timer = setInterval(refresh, Number(autoRefreshEl.value));
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", refresh);
+    document.getElementById("saveBtn").addEventListener("click", saveSettings);
+    autoRefreshEl.addEventListener("change", applyAutoRefresh);
+
+    loadSettings();
+    applyAutoRefresh();
+    refresh();
+  </script>
+</body>
+</html>

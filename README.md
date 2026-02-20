@@ -35,6 +35,27 @@ Komut satırından build:
 xcodebuild -project OfcHoursApp.xcodeproj -scheme OfcHoursApp -configuration Debug -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
+## BMAD Local Live Board
+
+BMAD tarafinda uretilen epic/story durumlarini local dosyalardan canli izlemek icin:
+
+1. Serveri baslat:
+```bash
+./scripts/run-bmad-live-board.sh
+```
+2. Tarayicida ac:
+```text
+http://127.0.0.1:4173/bmad-local-dashboard.html
+```
+3. Gerekirse `BMAD Output Path` alanina kendi path'ini gir:
+```text
+/Users/serkan/Documents/ofchours/_bmad-output
+```
+
+Not:
+- Veri kaynagi: `implementation-artifacts/sprint-status.yaml` + story markdown dosyalari
+- Ekran otomatik yenileme ile canli takip eder
+
 ## İzinler
 
 - Konum: Sağlıklı arka plan takibi için `Always` izni gerekir.

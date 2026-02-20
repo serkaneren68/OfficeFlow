@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OfcHours UI Preview</title>
+  <style>
+    :root {
+      --bg-0: #050914;
+      --bg-1: #0a1326;
+      --panel: #111f36;
+      --panel-2: #142744;
+      --line: #1f355d;
+      --text: #e8f3ff;
+      --text-2: #9bb3d1;
+      --cyan: #3df6ff;
+      --mint: #56f3bb;
+      --amber: #ffcf6a;
+      --red: #ff5d73;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Avenir Next, Segoe UI, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 700px at 10% -10%, rgba(61,246,255,0.12), transparent 70%),
+        radial-gradient(900px 600px at 100% 0%, rgba(86,243,187,0.1), transparent 70%),
+        linear-gradient(145deg, var(--bg-0), var(--bg-1));
+      padding: 24px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.6px;
+    }
+
+    .hint {
+      color: var(--text-2);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 18px;
+    }
+
+    .phone {
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      padding: 10px;
+      background: rgba(7, 13, 25, 0.8);
+      box-shadow: 0 0 0 1px rgba(61,246,255,0.08), 0 18px 45px rgba(0,0,0,0.45);
+    }
+
+    .screen {
+      border-radius: 22px;
+      overflow: hidden;
+      min-height: 600px;
+      background:
+        radial-gradient(700px 250px at 0% 0%, rgba(61,246,255,0.11), transparent 70%),
+        linear-gradient(170deg, #08101f, #0b1630);
+      border: 1px solid rgba(61,246,255,0.16);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 650;
+    }
+
+    .content {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: linear-gradient(160deg, rgba(17,31,54,0.92), rgba(20,39,68,0.84));
+      border: 1px solid rgba(61,246,255,0.24);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 8px 24px rgba(0,0,0,0.32);
+    }
+
+    .title { font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+    .value { font-size: 30px; font-weight: 750; line-height: 1.05; }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #1c2f54;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      width: 68%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--mint));
+    }
+
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      color: var(--text-2);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .ok { color: var(--mint); }
+    .warn { color: var(--amber); }
+    .bad { color: var(--red); }
+
+    .map {
+      height: 180px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.04) 49%, transparent 51%),
+        linear-gradient(-45deg, transparent 48%, rgba(255,255,255,0.04) 49%, transparent 51%),
+        linear-gradient(160deg, #0a1a30, #12314f);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--red);
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 14px rgba(255,93,115,0.12);
+      position: absolute;
+      left: 54%;
+      top: 48%;
+      transform: translate(-50%, -50%);
+    }
+
+    .you {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 0 10px rgba(61,246,255,0.15);
+      position: absolute;
+      left: 40%;
+      top: 62%;
+      transform: translate(-50%, -50%);
+    }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    button {
+      border: 1px solid var(--line);
+      background: #132746;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: default;
+    }
+
+    .primary {
+      background: linear-gradient(120deg, var(--cyan), #7df8ff);
+      color: #041220;
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    .tabs {
+      margin-top: auto;
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-2);
+    }
+
+    .tabs div { padding: 10px 4px; }
+    .tabs .active { color: var(--cyan); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>OfcHours - iOS Ekran HTML Onizlemesi</h1>
+    <div class="hint">Bu dosya, mevcut SwiftUI akisini (ilk kurulum + dashboard + reports + timeline + settings) birebir gorsel prototip olarak gosterir.</div>
+  </div>
+
+  <div class="grid">
+    <section class="phone">
+      <div class="screen">
+        <div class="nav"><span>Office Location</span><span class="pill warn">Initial Setup</span></div>
+        <div class="content">
+          <div class="card">
+            <div class="title">Ilk Kurulum</div>
+            <div>Uygulama baslamadan once ofis konumu secilmeli ve kaydedilmeli.</div>
+          </div>
+          <div class="card">
+            <div class="title">Map Setup</div>
+            <div class="map">
+              <div class="dot"></div>
+              <div class="you"></div>
+            </div>
+            <div class="actions" style="margin-top:10px">
+              <button>My Location</button>
+              <button>Use Current Location</button>
+              <button class="primary">Save Geofence</button>
+            </div>
+          </div>
+          <div class="card row">
+            <span>Radius</span>
+            <strong>150 m</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="nav"><span>Dashboard</span><span class="pill ok">Ready</span></div>
+        <div class="content">
+          <div class="card">
+            <div class="title">Today Progress</div>
+            <div class="value">5h 25m</div>
+            <div class="bar"><span></span></div>
+          </div>
+          <div class="card row">
+            <span>Tracking Status</span>
+            <strong class="ok">Geofence Active</strong>
+          </div>
+          <div class="card">
+            <div class="title">Smart Alerts</div>
+            <div class="warn">Daily target icin 2h 35m daha gerekli.</div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="active">Dashboard</div><div>Reports</div><div>Timeline</div><div>Settings</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="nav"><span>Reports</span><span class="pill">Month</span></div>
+        <div class="content">
+          <div class="card">
+            <div class="title">Monthly Summary</div>
+            <div class="value">132h</div>
+            <div class="row" style="margin-top:8px"><span>Target</span><strong>160h</strong></div>
+          </div>
+          <div class="card row"><span>Success Rate</span><strong class="ok">96.1%</strong></div>
+          <div class="card row"><span>Anomalies</span><strong class="bad">2</strong></div>
+          <div class="card row"><span>Battery Overhead</span><strong class="ok">2.4%</strong></div>
+        </div>
+        <div class="tabs">
+          <div>Dashboard</div><div class="active">Reports</div><div>Timeline</div><div>Settings</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="nav"><span>Timeline</span><span class="pill">Today</span></div>
+        <div class="content">
+          <div class="card row"><span>08:58</span><strong class="ok">Entry (Geofence)</strong></div>
+          <div class="card row"><span>12:21</span><strong class="warn">Exit (Manual Fix)</strong></div>
+          <div class="card row"><span>13:07</span><strong class="ok">Entry (Geofence)</strong></div>
+          <div class="card row"><span>18:02</span><strong class="ok">Exit (Geofence)</strong></div>
+          <div class="card">
+            <div class="title">Correction Audit</div>
+            <div>12:23 - Event edited (reason: lunch break correction)</div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div>Dashboard</div><div>Reports</div><div class="active">Timeline</div><div>Settings</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone">
+      <div class="screen">
+        <div class="nav"><span>Settings</span><span class="pill">Local First</span></div>
+        <div class="content">
+          <div class="card row"><span>Location Permission</span><strong class="ok">Always</strong></div>
+          <div class="card row"><span>Notifications</span><strong class="ok">Enabled</strong></div>
+          <div class="card row"><span>Office</span><strong>Istanbul HQ</strong></div>
+          <div class="card">
+            <div class="title">Targets</div>
+            <div class="row"><span>Daily</span><strong>8h</strong></div>
+            <div class="row"><span>Weekly</span><strong>40h</strong></div>
+            <div class="row"><span>Monthly</span><strong>160h</strong></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div>Dashboard</div><div>Reports</div><div>Timeline</div><div class="active">Settings</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

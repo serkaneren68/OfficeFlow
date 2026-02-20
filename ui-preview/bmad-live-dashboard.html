@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OfficeFlow BMAD Live Board</title>
+  <style>
+    :root {
+      --bg-0: #07101f;
+      --bg-1: #0e1d34;
+      --panel: #12253f;
+      --panel-2: #173156;
+      --line: #294a78;
+      --text: #eaf3ff;
+      --text-2: #9fb8da;
+      --cyan: #3df6ff;
+      --mint: #56f3bb;
+      --amber: #ffcf6a;
+      --red: #ff6278;
+      --violet: #80a0ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Avenir Next, Segoe UI, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1100px 800px at 0% -20%, rgba(61,246,255,0.11), transparent 70%),
+        radial-gradient(900px 650px at 100% 0%, rgba(128,160,255,0.09), transparent 70%),
+        linear-gradient(145deg, var(--bg-0), var(--bg-1));
+      padding: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.4px;
+    }
+
+    .sub {
+      color: var(--text-2);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .panel {
+      margin-top: 14px;
+      background: linear-gradient(160deg, rgba(18,37,63,0.9), rgba(23,49,86,0.72));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    input, select {
+      height: 38px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      background: #10223d;
+      color: var(--text);
+      padding: 0 10px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #132a49;
+      color: var(--text);
+      padding: 0 12px;
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    .primary {
+      border: 0;
+      background: linear-gradient(120deg, var(--cyan), #8af8ff);
+      color: #031421;
+    }
+
+    .status-line {
+      margin-top: 10px;
+      color: var(--text-2);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .kpis {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(8, 19, 34, 0.55);
+    }
+
+    .kpi .label {
+      color: var(--text-2);
+      font-size: 12px;
+    }
+
+    .kpi .value {
+      margin-top: 4px;
+      font-size: 24px;
+      font-weight: 750;
+    }
+
+    .board {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(240px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .col {
+      min-height: 260px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(9, 21, 38, 0.64);
+      padding: 8px;
+    }
+
+    .col-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-2);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .count {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 1px 8px;
+      font-size: 11px;
+    }
+
+    .card {
+      display: grid;
+      gap: 8px;
+      border: 1px solid #2d517f;
+      border-radius: 9px;
+      background: linear-gradient(160deg, rgba(19,42,73,0.86), rgba(22,47,82,0.7));
+      padding: 9px;
+      margin-bottom: 8px;
+    }
+
+    .card.epic {
+      border-color: #6ea9ff;
+      box-shadow: 0 0 0 1px rgba(128,160,255,0.2) inset;
+    }
+
+    .meta {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: var(--text-2);
+    }
+
+    .pill {
+      border: 1px solid #315886;
+      border-radius: 999px;
+      padding: 1px 7px;
+      white-space: nowrap;
+    }
+
+    .pill.type-epic { border-color: #6ea9ff; color: #c9daff; }
+    .pill.type-story { border-color: #56f3bb; color: #c8ffe9; }
+    .pill.type-task { border-color: #3df6ff; color: #cfffff; }
+    .pill.type-bug { border-color: #ff6278; color: #ffd3da; }
+
+    a.issue-link {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    a.issue-link:hover { text-decoration: underline; }
+
+    .epic-table {
+      margin-top: 14px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      overflow: hidden;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }
+
+    .epic-table th,
+    .epic-table td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(41,74,120,0.55);
+    }
+
+    .epic-table th {
+      color: var(--text-2);
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      background: rgba(11,24,43,0.75);
+    }
+
+    .bar-wrap {
+      width: 100%;
+      min-width: 140px;
+      background: #173051;
+      border-radius: 999px;
+      height: 7px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--mint));
+    }
+
+    .muted {
+      color: var(--text-2);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>BMAD Live Board</h1>
+  <div class="sub">Track epics, stories and tasks from GitHub issues in real-time.</div>
+
+  <div class="panel">
+    <div class="controls">
+      <label>
+        GitHub Owner
+        <input id="owner" value="serkaneren68" />
+      </label>
+      <label>
+        Repository
+        <input id="repo" value="OfficeFlow" />
+      </label>
+      <label>
+        Personal Access Token (optional for public repos)
+        <input id="token" type="password" placeholder="ghp_xxx..." />
+      </label>
+      <label>
+        Auto Refresh
+        <select id="autoRefresh">
+          <option value="off">Off</option>
+          <option value="15000">15s</option>
+          <option value="30000" selected>30s</option>
+          <option value="60000">60s</option>
+        </select>
+      </label>
+    </div>
+    <div class="button-row" style="margin-top:10px">
+      <button id="refreshBtn" class="primary">Refresh Now</button>
+      <button id="saveBtn">Save Settings</button>
+      <button id="clearBtn">Clear Token</button>
+    </div>
+    <div class="status-line">
+      <span id="status">Ready.</span>
+      <span id="updatedAt">Last update: -</span>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="board" id="board"></div>
+
+    <table class="epic-table">
+      <thead>
+        <tr>
+          <th>Epic</th>
+          <th>Progress</th>
+          <th>Children</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="epicRows"></tbody>
+    </table>
+    <p class="muted">Type detection uses labels (epic/story/task/bug) or title prefixes like [EPIC]. Status uses labels (todo/in-progress/review/blocked/done) or closed state.</p>
+  </div>
+
+  <script>
+    const columns = [
+      { key: "todo", title: "Todo" },
+      { key: "in_progress", title: "In Progress" },
+      { key: "review", title: "Review" },
+      { key: "blocked", title: "Blocked" },
+      { key: "done", title: "Done" }
+    ];
+
+    const state = {
+      issues: [],
+      timer: null
+    };
+
+    const ownerEl = document.getElementById("owner");
+    const repoEl = document.getElementById("repo");
+    const tokenEl = document.getElementById("token");
+    const autoRefreshEl = document.getElementById("autoRefresh");
+    const statusEl = document.getElementById("status");
+    const updatedAtEl = document.getElementById("updatedAt");
+    const kpisEl = document.getElementById("kpis");
+    const boardEl = document.getElementById("board");
+    const epicRowsEl = document.getElementById("epicRows");
+
+    function normalize(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function readLabels(issue) {
+      return (issue.labels || []).map(label => normalize(label.name));
+    }
+
+    function inferType(issue) {
+      const title = normalize(issue.title);
+      const labels = readLabels(issue);
+      if (labels.includes("epic") || title.startsWith("[epic]")) return "epic";
+      if (labels.includes("story") || labels.includes("feature") || title.startsWith("[story]")) return "story";
+      if (labels.includes("task") || labels.includes("subtask") || title.startsWith("[task]")) return "task";
+      if (labels.includes("bug") || title.startsWith("[bug]")) return "bug";
+      return "other";
+    }
+
+    function inferStatus(issue) {
+      if (issue.state === "closed") return "done";
+      const labels = readLabels(issue);
+      if (labels.some(v => ["in-progress", "in progress", "doing", "wip"].includes(v))) return "in_progress";
+      if (labels.some(v => ["review", "qa", "ready for review"].includes(v))) return "review";
+      if (labels.some(v => ["blocked", "on hold"].includes(v))) return "blocked";
+      if (labels.some(v => ["done", "completed"].includes(v))) return "done";
+      return "todo";
+    }
+
+    function extractEpicRef(issue) {
+      const body = issue.body || "";
+      const match = body.match(/(?:epic|parent)\s*[:# ]\s*#?(\d+)/i);
+      return match ? Number(match[1]) : null;
+    }
+
+    function parseChecklist(body) {
+      const text = body || "";
+      const total = (text.match(/-\s\[(?: |x|X)\]\s/g) || []).length;
+      const done = (text.match(/-\s\[(?:x|X)\]\s/g) || []).length;
+      return { total, done };
+    }
+
+    function getAuthHeaders() {
+      const token = tokenEl.value.trim();
+      if (!token) return { Accept: "application/vnd.github+json" };
+      return {
+        Accept: "application/vnd.github+json",
+        Authorization: "Bearer " + token
+      };
+    }
+
+    async function fetchAllIssues(owner, repo) {
+      const headers = getAuthHeaders();
+      const all = [];
+      let page = 1;
+      while (page <= 10) {
+        const url = `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=100&page=${page}&sort=updated&direction=desc`;
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+          throw new Error(`GitHub API ${response.status}: ${response.statusText}`);
+        }
+        const batch = await response.json();
+        if (!Array.isArray(batch) || batch.length === 0) break;
+        all.push(...batch.filter(item => !item.pull_request));
+        if (batch.length < 100) break;
+        page += 1;
+      }
+      return all;
+    }
+
+    function renderKpis(issues) {
+      const open = issues.filter(i => i.state === "open").length;
+      const closed = issues.filter(i => i.state === "closed").length;
+      const epics = issues.filter(i => inferType(i) === "epic").length;
+      const stories = issues.filter(i => inferType(i) === "story").length;
+      const tasks = issues.filter(i => inferType(i) === "task").length;
+
+      const items = [
+        { label: "Total", value: issues.length },
+        { label: "Open", value: open },
+        { label: "Closed", value: closed },
+        { label: "Epics", value: epics },
+        { label: "Stories", value: stories },
+        { label: "Tasks", value: tasks }
+      ];
+
+      kpisEl.innerHTML = items.map(item => `
+        <div class="kpi">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderBoard(issues) {
+      const byStatus = new Map(columns.map(col => [col.key, []]));
+      issues.forEach(issue => {
+        const status = inferStatus(issue);
+        byStatus.get(status)?.push(issue);
+      });
+
+      boardEl.innerHTML = columns.map(col => {
+        const list = byStatus.get(col.key) || [];
+        const cards = list
+          .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+          .map(issue => {
+            const type = inferType(issue);
+            const labels = readLabels(issue).slice(0, 3);
+            return `
+              <article class="card ${type === "epic" ? "epic" : ""}">
+                <a class="issue-link" target="_blank" href="${issue.html_url}">#${issue.number} ${escapeHtml(issue.title)}</a>
+                <div class="meta">
+                  <span class="pill type-${type}">${type}</span>
+                  ${labels.map(l => `<span class="pill">${escapeHtml(l)}</span>`).join("")}
+                </div>
+              </article>
+            `;
+          }).join("");
+
+        return `
+          <section class="col">
+            <div class="col-title">${col.title} <span class="count">${list.length}</span></div>
+            ${cards || '<div class="muted">No issues</div>'}
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderEpics(issues) {
+      const epics = issues.filter(issue => inferType(issue) === "epic");
+      const childrenByEpic = new Map();
+      issues.forEach(issue => {
+        const parent = extractEpicRef(issue);
+        if (!parent) return;
+        if (!childrenByEpic.has(parent)) childrenByEpic.set(parent, []);
+        childrenByEpic.get(parent).push(issue);
+      });
+
+      epicRowsEl.innerHTML = epics
+        .sort((a, b) => b.number - a.number)
+        .map(epic => {
+          const children = childrenByEpic.get(epic.number) || [];
+          const doneByChildren = children.filter(child => inferStatus(child) === "done").length;
+          const checklist = parseChecklist(epic.body || "");
+
+          let total = children.length;
+          let done = doneByChildren;
+          if (total === 0 && checklist.total > 0) {
+            total = checklist.total;
+            done = checklist.done;
+          }
+          const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+          const status = inferStatus(epic).replace("_", " ");
+
+          return `
+            <tr>
+              <td><a target="_blank" class="issue-link" href="${epic.html_url}">#${epic.number} ${escapeHtml(epic.title)}</a></td>
+              <td>
+                ${progress}% (${done}/${total})
+                <div class="bar-wrap"><div class="bar" style="width:${progress}%"></div></div>
+              </td>
+              <td>${children.length}</td>
+              <td>${escapeHtml(status)}</td>
+            </tr>
+          `;
+        }).join("");
+
+      if (epics.length === 0) {
+        epicRowsEl.innerHTML = `<tr><td colspan="4" class="muted">No epic issues found. Use label "epic" or title prefix "[EPIC]".</td></tr>`;
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = text;
+      statusEl.style.color = isError ? "var(--red)" : "var(--text-2)";
+    }
+
+    async function refresh() {
+      const owner = ownerEl.value.trim();
+      const repo = repoEl.value.trim();
+      if (!owner || !repo) {
+        setStatus("Owner and repo are required.", true);
+        return;
+      }
+
+      try {
+        setStatus("Loading issues...");
+        const issues = await fetchAllIssues(owner, repo);
+        state.issues = issues;
+        renderKpis(issues);
+        renderBoard(issues);
+        renderEpics(issues);
+        updatedAtEl.textContent = "Last update: " + new Date().toLocaleString();
+        setStatus(`Loaded ${issues.length} issues.`);
+      } catch (error) {
+        setStatus(error.message || "Unexpected error", true);
+      }
+    }
+
+    function saveSettings() {
+      const payload = {
+        owner: ownerEl.value.trim(),
+        repo: repoEl.value.trim(),
+        autoRefresh: autoRefreshEl.value
+      };
+      localStorage.setItem("bmad-live-board-settings", JSON.stringify(payload));
+      setStatus("Settings saved.");
+      updateAutoRefresh();
+    }
+
+    function loadSettings() {
+      const raw = localStorage.getItem("bmad-live-board-settings");
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        if (data.owner) ownerEl.value = data.owner;
+        if (data.repo) repoEl.value = data.repo;
+        if (data.autoRefresh) autoRefreshEl.value = data.autoRefresh;
+      } catch {
+        // ignore local parse errors
+      }
+    }
+
+    function updateAutoRefresh() {
+      if (state.timer) clearInterval(state.timer);
+      const interval = autoRefreshEl.value;
+      if (interval !== "off") {
+        state.timer = setInterval(refresh, Number(interval));
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", refresh);
+    document.getElementById("saveBtn").addEventListener("click", saveSettings);
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      tokenEl.value = "";
+      setStatus("Token cleared from input.");
+    });
+    autoRefreshEl.addEventListener("change", updateAutoRefresh);
+
+    loadSettings();
+    updateAutoRefresh();
+    refresh();
+  </script>
+</body>
+</html>

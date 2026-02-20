@@ -35,25 +35,6 @@ Komut satırından build:
 xcodebuild -project OfcHoursApp.xcodeproj -scheme OfcHoursApp -configuration Debug -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
-## BMAD Live Tracking Screen
-
-GitHub issue/epic durumunu canli izlemek icin:
-
-1. Dashboard server baslat:
-```bash
-./scripts/serve-dashboard.sh
-```
-2. Tarayicida ac:
-```text
-http://localhost:4173/bmad-live-dashboard.html
-```
-3. Owner/Repo gir, gerekirse GitHub token ekle, `Refresh Now` ile guncelle.
-
-Notlar:
-- `epic`, `story`, `task`, `bug` etiketleri otomatik tip olarak okunur.
-- `todo`, `in-progress`, `review`, `blocked`, `done` etiketleri kolonlara dusurulur.
-- Kapali issue otomatik `done` sayilir.
-
 ## İzinler
 
 - Konum: Sağlıklı arka plan takibi için `Always` izni gerekir.

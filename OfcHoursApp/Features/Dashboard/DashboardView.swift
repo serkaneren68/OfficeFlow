@@ -1,14 +1,10 @@
 import SwiftUI
-import Combine
 
 struct DashboardView: View {
     @EnvironmentObject private var state: AppState
     @State private var reveal = false
-    @State private var now: Date = .now
 
-    private let liveTicker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    private var dailyMinutes: Int { state.trackedMinutes(for: .day, at: now) }
+    private var dailyMinutes: Int { state.trackedMinutes(for: .day, at: state.liveNow) }
     private var dailyTargetHours: Int { state.targetHours(for: .day) }
     private var dailyTargetMinutes: Int { max(1, dailyTargetHours * 60) }
     private var dailyProgress: Double {
@@ -23,7 +19,7 @@ struct DashboardView: View {
     }
 
     private var liveSessionDisplay: String? {
-        guard let elapsed = state.activeSessionElapsed(at: now) else { return nil }
+        guard let elapsed = state.activeSessionElapsed(at: state.liveNow) else { return nil }
         let total = max(0, Int(elapsed))
         let h = total / 3600
         let m = (total % 3600) / 60
@@ -61,9 +57,9 @@ struct DashboardView: View {
             .navigationTitle("Dashboard")
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .onAppear { reveal = true }
-            .onReceive(liveTicker) { tick in
-                now = tick
+            .onAppear {
+                reveal = true
+                state.refreshLiveClockNow()
             }
         }
     }

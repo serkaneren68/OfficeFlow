@@ -104,6 +104,7 @@ final class AppState: ObservableObject {
     @Published var currentLocationMessage: String = ""
 
     @Published var selectedReportPeriod: ReportPeriod = .day
+    @Published private(set) var liveNow: Date = .now
     @Published private(set) var sessionResult: SessionBuildResult = .init(sessions: [])
     @Published private(set) var eventsDescending: [PresenceEvent] = []
 
@@ -115,6 +116,7 @@ final class AppState: ObservableObject {
     private let correctionService = CorrectionService()
     private let reportingService = ReportingService()
     private var isProcessingRegionState = false
+    private var liveClockCancellable: AnyCancellable?
 
     init() {
         let doc = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
@@ -153,6 +155,8 @@ final class AppState: ObservableObject {
         locationManager.refreshPermission()
         locationManager.updateMonitoring(office: office)
         refreshNotificationPermissionStatus()
+        syncLiveClock()
+        startLiveClock()
     }
 
     var isTrackingReady: Bool {
@@ -265,16 +269,30 @@ final class AppState: ObservableObject {
 
     func handleScenePhaseChange(_ phase: ScenePhase) {
         switch phase {
-        case .active, .background:
+        case .active:
+            syncLiveClock()
+            startLiveClock()
+            locationManager.refreshPermission()
+            locationManager.updateMonitoring(office: office)
+            locationManager.requestMonitoredRegionState()
+            refreshNotificationPermissionStatus()
+        case .background:
+            syncLiveClock()
+            stopLiveClock()
             locationManager.refreshPermission()
             locationManager.updateMonitoring(office: office)
             locationManager.requestMonitoredRegionState()
             refreshNotificationPermissionStatus()
         case .inactive:
-            break
+            syncLiveClock()
+            stopLiveClock()
         @unknown default:
             break
         }
+    }
+
+    func refreshLiveClockNow() {
+        syncLiveClock()
     }
 
     func locationSettingsGuidance() -> String {
@@ -468,6 +486,24 @@ final class AppState: ObservableObject {
 
         let request = UNNotificationRequest(identifier: event.id.uuidString, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
+    }
+
+    private func syncLiveClock() {
+        liveNow = Date()
+    }
+
+    private func startLiveClock() {
+        guard liveClockCancellable == nil else { return }
+        liveClockCancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] tick in
+                self?.liveNow = tick
+            }
+    }
+
+    private func stopLiveClock() {
+        liveClockCancellable?.cancel()
+        liveClockCancellable = nil
     }
 
     private func runRecoveryIntegrityValidation() {

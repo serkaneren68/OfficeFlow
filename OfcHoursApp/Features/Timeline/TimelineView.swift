@@ -3,9 +3,13 @@ import SwiftUI
 struct TimelineView: View {
     @EnvironmentObject private var state: AppState
     @State private var showingAddSheet = false
-    @State private var addType: PresenceEventType = .entry
-    @State private var addDate: Date = .now
+    @State private var addMode: ManualAddMode = .singleEvent
+    @State private var addSingleType: PresenceEventType = .entry
+    @State private var addSingleDate: Date = .now
+    @State private var addEntryDate: Date = .now
+    @State private var addExitDate: Date = .now
     @State private var addReason: String = ""
+    @State private var addValidationMessage: String = ""
 
     @State private var editingEvent: PresenceEvent?
     @State private var editType: PresenceEventType = .entry
@@ -64,12 +68,17 @@ struct TimelineView: View {
             }
 
             Button {
-                addType = .entry
-                addDate = .now
+                let now = Date()
+                addMode = .singleEvent
+                addSingleType = state.isCurrentlyInOffice ? .exit : .entry
+                addSingleDate = now
+                addExitDate = now
+                addEntryDate = Calendar.current.date(byAdding: .hour, value: -8, to: now) ?? now
                 addReason = ""
+                addValidationMessage = ""
                 showingAddSheet = true
             } label: {
-                Label("Add Manual Event", systemImage: "plus.circle.fill")
+                Label("Add Manual Record", systemImage: "plus.circle.fill")
                     .font(AppTypography.heading(16))
                     .foregroundStyle(AppPalette.bgEnd)
                     .frame(maxWidth: .infinity)
@@ -131,9 +140,20 @@ struct TimelineView: View {
                         Circle()
                             .fill(event.type == .entry ? AppPalette.neonMint : AppPalette.neonAmber)
                             .frame(width: 8, height: 8)
-                        Text(event.type.rawValue)
+                        Text(event.type.localizedTitle)
                             .font(AppTypography.body(14))
                             .foregroundStyle(AppPalette.textPrimary)
+                        if event.source == .manual {
+                            Text(AppLocalization.text("event.manualTag", fallback: "MANUAL"))
+                                .font(AppTypography.mono(9))
+                                .foregroundStyle(AppPalette.neonMint)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(AppPalette.neonMint.opacity(0.15))
+                                )
+                        }
                         Spacer()
                         Text(event.timestamp.formatted(date: .abbreviated, time: .shortened))
                             .font(AppTypography.mono(12))
@@ -163,10 +183,10 @@ struct TimelineView: View {
             } else {
                 ForEach(state.correctionAuditLog.prefix(8)) { item in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(item.action.rawValue.uppercased()) • \(item.timestamp.formatted(date: .abbreviated, time: .shortened))")
+                        Text("\(item.action.localizedTitle.uppercased()) • \(item.timestamp.formatted(date: .abbreviated, time: .shortened))")
                             .font(AppTypography.mono(12))
                             .foregroundStyle(AppPalette.neonCyan)
-                        Text(item.reason)
+                        Text(auditReasonText(item.reason))
                             .font(AppTypography.body(13))
                             .foregroundStyle(AppPalette.textSecondary)
                     }
@@ -185,25 +205,51 @@ struct TimelineView: View {
     private var addSheet: some View {
         NavigationStack {
             Form {
-                Picker("Type", selection: $addType) {
-                    ForEach(PresenceEventType.allCases, id: \.self) { type in
-                        Text(type.rawValue).tag(type)
+                Picker("Add Mode", selection: $addMode) {
+                    ForEach(ManualAddMode.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
                     }
                 }
-                DatePicker("Time", selection: $addDate)
-                TextField("Reason", text: $addReason)
+                .pickerStyle(.segmented)
+
+                if addMode == .singleEvent {
+                    Picker("Type", selection: $addSingleType) {
+                        ForEach(PresenceEventType.allCases, id: \.self) { type in
+                            Text(type.localizedTitle).tag(type)
+                        }
+                    }
+                    DatePicker("Time", selection: $addSingleDate)
+                } else {
+                    DatePicker("Entry Time", selection: $addEntryDate)
+                    DatePicker("Exit Time", selection: $addExitDate, in: addEntryDate...)
+                }
+
+                TextField("Reason (optional)", text: $addReason)
+                if !addValidationMessage.isEmpty {
+                    Text(addValidationMessage)
+                        .font(AppTypography.body(12))
+                        .foregroundStyle(AppPalette.neonRed)
+                }
             }
-            .navigationTitle("Add Event")
+            .onChange(of: addEntryDate) { _, newValue in
+                if addExitDate < newValue {
+                    addExitDate = newValue
+                }
+            }
+            .onChange(of: addMode) { _, _ in
+                addValidationMessage = ""
+            }
+            .navigationTitle("Add Manual Record")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { showingAddSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        state.addManualEvent(type: addType, timestamp: addDate, reason: addReason)
-                        showingAddSheet = false
+                        if saveManualRecord() {
+                            showingAddSheet = false
+                        }
                     }
-                    .disabled(addReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -214,7 +260,7 @@ struct TimelineView: View {
             Form {
                 Picker("Type", selection: $editType) {
                     ForEach(PresenceEventType.allCases, id: \.self) { type in
-                        Text(type.rawValue).tag(type)
+                        Text(type.localizedTitle).tag(type)
                     }
                 }
                 DatePicker("Time", selection: $editDate)
@@ -242,14 +288,14 @@ struct TimelineView: View {
     }
 
     private func sectionTitle(_ text: String) -> some View {
-        Text(text.uppercased())
+        Text(AppLocalization.text(text, fallback: text).uppercased())
             .font(AppTypography.mono(12))
             .foregroundStyle(AppPalette.neonCyan)
     }
 
     private func badge(title: String, value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title.uppercased())
+            Text(AppLocalization.text(title, fallback: title).uppercased())
                 .font(AppTypography.mono(10))
                 .foregroundStyle(AppPalette.textSecondary)
             Text(value)
@@ -266,5 +312,47 @@ struct TimelineView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(color.opacity(0.2), lineWidth: 1)
         )
+    }
+
+    private func auditReasonText(_ value: String) -> String {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized == correctionNoReasonToken.lowercased() ||
+            normalized == "no reason provided" ||
+            normalized == "neden belirtilmedi" {
+            return AppLocalization.text("correction.noReason", fallback: "No reason provided")
+        }
+        return value
+    }
+
+    private func saveManualRecord() -> Bool {
+        addValidationMessage = ""
+        switch addMode {
+        case .singleEvent:
+            state.addManualEvent(type: addSingleType, timestamp: addSingleDate, reason: addReason)
+            return true
+        case .session:
+            guard state.addManualSession(entry: addEntryDate, exit: addExitDate, reason: addReason) else {
+                addValidationMessage = AppLocalization.text(
+                    "timeline.manualSession.invalid",
+                    fallback: "Exit time must be later than or equal to entry time."
+                )
+                return false
+            }
+            return true
+        }
+    }
+}
+
+private enum ManualAddMode: CaseIterable {
+    case singleEvent
+    case session
+
+    var title: String {
+        switch self {
+        case .singleEvent:
+            return AppLocalization.text("timeline.addMode.single", fallback: "Single Event")
+        case .session:
+            return AppLocalization.text("timeline.addMode.session", fallback: "Session")
+        }
     }
 }

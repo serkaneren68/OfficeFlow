@@ -81,7 +81,9 @@ struct DashboardView: View {
 
                 HStack(spacing: 8) {
                     statusChip(
-                        title: state.isCurrentlyInOffice ? "In Office" : "Outside",
+                        title: state.isCurrentlyInOffice
+                            ? AppLocalization.text("dashboard.inOffice", fallback: "In Office")
+                            : AppLocalization.text("dashboard.outside", fallback: "Outside"),
                         color: state.isCurrentlyInOffice ? AppPalette.neonMint : AppPalette.neonAmber,
                         icon: state.isCurrentlyInOffice ? "building.2.fill" : "figure.walk"
                     )
@@ -143,13 +145,19 @@ struct DashboardView: View {
 
             statusTile(
                 label: "Location",
-                value: state.locationPermission == .authorizedAlways ? "Always" : state.locationPermission == .authorizedWhenInUse ? "When In Use" : "Missing",
+                value: state.locationPermission == .authorizedAlways
+                    ? AppLocalization.text("dashboard.location.always", fallback: "Always")
+                    : state.locationPermission == .authorizedWhenInUse
+                        ? AppLocalization.text("dashboard.location.whenInUse", fallback: "When In Use")
+                        : AppLocalization.text("dashboard.location.missing", fallback: "Missing"),
                 color: state.locationPermission == .authorizedAlways ? AppPalette.neonMint : AppPalette.neonAmber
             )
 
             statusTile(
                 label: "Office",
-                value: state.office == nil ? "Not Set" : "Configured",
+                value: state.office == nil
+                    ? AppLocalization.text("dashboard.office.notSet", fallback: "Not Set")
+                    : AppLocalization.text("dashboard.office.configured", fallback: "Configured"),
                 color: state.office == nil ? AppPalette.neonAmber : AppPalette.neonMint
             )
         }
@@ -158,13 +166,23 @@ struct DashboardView: View {
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if state.activeTargetPeriods.isEmpty {
-                metricCard(title: "Targets", value: "No active target set", icon: "target")
+                metricCard(
+                    title: AppLocalization.text("dashboard.targets", fallback: "Targets"),
+                    value: AppLocalization.text("dashboard.targets.none", fallback: "No active target set"),
+                    icon: "target"
+                )
             } else {
                 ForEach(state.activeTargetPeriods, id: \.self) { period in
-                    metricCard(title: period.rawValue, value: state.progressLabel(for: period), icon: icon(for: period))
+                    metricCard(title: period.localizedTitle, value: state.progressLabel(for: period), icon: icon(for: period))
                 }
             }
-            metricCard(title: "Readiness", value: state.isTrackingReady ? "Background active" : "Setup required", icon: "waveform.path.ecg")
+            metricCard(
+                title: AppLocalization.text("dashboard.readiness", fallback: "Readiness"),
+                value: state.isTrackingReady
+                    ? AppLocalization.text("dashboard.readiness.active", fallback: "Background active")
+                    : AppLocalization.text("dashboard.readiness.required", fallback: "Setup required"),
+                icon: "waveform.path.ecg"
+            )
         }
     }
 
@@ -183,17 +201,23 @@ struct DashboardView: View {
                     .font(AppTypography.heading(18))
                     .foregroundStyle(AppPalette.textPrimary)
                 Spacer()
-                Text("\(state.notificationLog.prefix(4).count) events")
+                Text(
+                    AppLocalization.format(
+                        "dashboard.activity.count",
+                        state.recentActivityCount,
+                        fallback: "%d events"
+                    )
+                )
                     .font(AppTypography.mono(11))
                     .foregroundStyle(AppPalette.textSecondary)
             }
 
-            if state.notificationLog.isEmpty {
+            if state.recentActivityRows.isEmpty {
                 Text("No recent entry/exit activity yet.")
                     .font(AppTypography.body(14))
                     .foregroundStyle(AppPalette.textSecondary)
             } else {
-                ForEach(Array(state.notificationLog.prefix(4).enumerated()), id: \.offset) { _, row in
+                ForEach(Array(state.recentActivityRows.enumerated()), id: \.offset) { _, row in
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                             .foregroundStyle(AppPalette.neonCyan)
@@ -231,7 +255,7 @@ struct DashboardView: View {
 
     private func statusTile(label: String, value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased())
+            Text(AppLocalization.text(label, fallback: label).uppercased())
                 .font(AppTypography.mono(10))
                 .foregroundStyle(AppPalette.textSecondary)
             Text(value)

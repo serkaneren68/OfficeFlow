@@ -142,7 +142,7 @@ final class AppState: ObservableObject {
         locationManager.onCurrentLocation = { [weak self] coordinate in
             Task { @MainActor in
                 self?.currentLocationCoordinate = coordinate
-                self?.currentLocationMessage = "Current location updated."
+                self?.currentLocationMessage = AppLocalization.text("location.currentUpdated", fallback: "Current location updated.")
             }
         }
         locationManager.onLocationError = { [weak self] message in
@@ -164,7 +164,7 @@ final class AppState: ObservableObject {
     }
 
     var requiresOfficeSetup: Bool {
-        office == nil
+        office == nil || showOnboarding
     }
 
     var isCurrentlyInOffice: Bool {
@@ -173,26 +173,62 @@ final class AppState: ObservableObject {
 
     var trackingStatusText: String {
         if isTrackingReady {
-            return "Auto Tracking Active"
+            return AppLocalization.text("status.autoTrackingActive", fallback: "Auto Tracking Active")
         }
         if locationPermission == .authorizedWhenInUse {
-            return "Foreground Only"
+            return AppLocalization.text("status.foregroundOnly", fallback: "Foreground Only")
         }
         if office == nil {
-            return "Office Not Set"
+            return AppLocalization.text("status.officeNotSet", fallback: "Office Not Set")
         }
-        return "Permission Required"
+        return AppLocalization.text("status.permissionRequired", fallback: "Permission Required")
     }
 
     var setupSummaryItems: [String] {
         [
-            "Location Permission: \(locationPermission.rawValue)",
-            "Location Setup Deferred: \(locationPermissionDeferred ? "Yes" : "No")",
-            "Notification Permission: \(notificationPermission.rawValue)",
-            "Notification Setup Deferred: \(notificationPermissionDeferred ? "Yes" : "No")",
-            "Tracking Notifications: \(trackingNotificationsEnabled ? "Enabled" : "Disabled")",
-            "Office: \(office?.name ?? "Not Configured")",
-            "Targets: D \(targets.dailyHours)h / W \(targets.weeklyHours)h / M \(targets.monthlyHours)h"
+            AppLocalization.format(
+                "setup.locationPermission",
+                locationPermission.localizedTitle,
+                fallback: "Location Permission: %@"
+            ),
+            AppLocalization.format(
+                "setup.locationDeferred",
+                locationPermissionDeferred
+                    ? AppLocalization.text("common.yes", fallback: "Yes")
+                    : AppLocalization.text("common.no", fallback: "No"),
+                fallback: "Location Setup Deferred: %@"
+            ),
+            AppLocalization.format(
+                "setup.notificationPermission",
+                notificationPermission.localizedTitle,
+                fallback: "Notification Permission: %@"
+            ),
+            AppLocalization.format(
+                "setup.notificationDeferred",
+                notificationPermissionDeferred
+                    ? AppLocalization.text("common.yes", fallback: "Yes")
+                    : AppLocalization.text("common.no", fallback: "No"),
+                fallback: "Notification Setup Deferred: %@"
+            ),
+            AppLocalization.format(
+                "setup.trackingNotifications",
+                trackingNotificationsEnabled
+                    ? AppLocalization.text("common.enabled", fallback: "Enabled")
+                    : AppLocalization.text("common.disabled", fallback: "Disabled"),
+                fallback: "Tracking Notifications: %@"
+            ),
+            AppLocalization.format(
+                "setup.office",
+                office?.name ?? AppLocalization.text("common.notConfigured", fallback: "Not Configured"),
+                fallback: "Office: %@"
+            ),
+            AppLocalization.format(
+                "setup.targetsSummary",
+                targets.dailyHours,
+                targets.weeklyHours,
+                targets.monthlyHours,
+                fallback: "Targets: D %dh / W %dh / M %dh"
+            )
         ]
     }
 
@@ -200,22 +236,42 @@ final class AppState: ObservableObject {
         var alerts: [String] = []
         if !isTrackingReady {
             if locationPermission == .authorizedWhenInUse {
-                alerts.append("Background tracking is limited. Grant 'Always' location permission.")
+                alerts.append(
+                    AppLocalization.text(
+                        "alert.backgroundLimited",
+                        fallback: "Background tracking is limited. Grant 'Always' location permission."
+                    )
+                )
             } else {
-                alerts.append("Tracking is not ready. Configure permissions and office geofence.")
+                alerts.append(
+                    AppLocalization.text(
+                        "alert.trackingNotReady",
+                        fallback: "Tracking is not ready. Configure permissions and office geofence."
+                    )
+                )
             }
         }
         if locationPermissionDeferred || notificationPermissionDeferred {
-            alerts.append("Permission setup is deferred. You can complete it anytime from Settings.")
+            alerts.append(
+                AppLocalization.text(
+                    "alert.permissionDeferred",
+                    fallback: "Permission setup is deferred. You can complete it anytime from Settings."
+                )
+            )
         }
-        if recoveryValidationMessage.contains("found") {
+        if isRecoveryValidationWarning {
             alerts.append(recoveryValidationMessage)
         }
         let hour = Calendar.current.component(.hour, from: Date())
         if hour >= 15 {
             let dayMinutes = trackedMinutesForCurrentDay()
             if dayMinutes < targets.dailyHours * 60 / 2 {
-                alerts.append("You are behind your daily target. Consider planning next office visit.")
+                alerts.append(
+                    AppLocalization.text(
+                        "alert.dailyBehind",
+                        fallback: "You are behind your daily target. Consider planning next office visit."
+                    )
+                )
             }
         }
         return alerts
@@ -240,13 +296,18 @@ final class AppState: ObservableObject {
         Task { @MainActor in
             let center = UNUserNotificationCenter.current()
             notificationPermissionDeferred = false
-            let granted = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
-            if granted == true {
-                notificationPermission = .authorizedAlways
-                trackingNotificationsEnabled = true
-            } else {
-                notificationPermission = .denied
-                trackingNotificationsEnabled = false
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+                if granted {
+                    notificationPermission = .authorizedAlways
+                    trackingNotificationsEnabled = true
+                } else {
+                    notificationPermission = .denied
+                    trackingNotificationsEnabled = false
+                }
+            } catch {
+                // Transient request failures should not be treated as a hard denial.
+                refreshNotificationPermissionStatus()
             }
         }
     }
@@ -296,42 +357,55 @@ final class AppState: ObservableObject {
     }
 
     func locationSettingsGuidance() -> String {
-        "iOS Settings > Privacy & Security > Location Services > OfficeFlow > Always"
+        AppLocalization.text(
+            "guidance.locationSettings",
+            fallback: "iOS Settings > Privacy & Security > Location Services > Office Hours > Always"
+        )
     }
 
     func notificationSettingsGuidance() -> String {
-        "iOS Settings > Notifications > OfficeFlow > Allow Notifications"
+        AppLocalization.text(
+            "guidance.notificationSettings",
+            fallback: "iOS Settings > Notifications > Office Hours > Allow Notifications"
+        )
     }
 
     func saveOffice(name: String, latitude: Double, longitude: Double, radiusMeters: Double) {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanName.isEmpty else {
-            officeValidationMessage = "Office name is required."
+            officeValidationMessage = AppLocalization.text("office.error.nameRequired", fallback: "Office name is required.")
             return
         }
         guard (-90.0...90.0).contains(latitude), (-180.0...180.0).contains(longitude) else {
-            officeValidationMessage = "Latitude/Longitude values are invalid."
+            officeValidationMessage = AppLocalization.text("office.error.latLongInvalid", fallback: "Latitude/Longitude values are invalid.")
             return
         }
-        guard radiusMeters > 0 else {
-            officeValidationMessage = "Radius must be greater than zero."
+        guard radiusMeters >= 50 else {
+            officeValidationMessage = AppLocalization.text(
+                "office.error.radiusMinimum",
+                fallback: "Radius must be at least 50 meters."
+            )
             return
         }
-        officeValidationMessage = "Office geofence configured."
+        officeValidationMessage = AppLocalization.text("office.status.configured", fallback: "Office geofence configured.")
         office = OfficeLocation(name: cleanName, latitude: latitude, longitude: longitude, radiusMeters: radiusMeters)
+        showOnboarding = false
         locationManager.updateMonitoring(office: office)
     }
 
     func clearOffice() {
         office = nil
         isInsideOffice = false
-        officeValidationMessage = "Office geofence removed."
+        showOnboarding = true
+        officeValidationMessage = AppLocalization.text("office.status.removed", fallback: "Office geofence removed.")
         locationManager.updateMonitoring(office: nil)
     }
 
-    func updateTargets(daily: Int, weekly: Int, monthly: Int) {
-        guard daily >= 0, weekly >= 0, monthly >= 0 else { return }
+    @discardableResult
+    func updateTargets(daily: Int, weekly: Int, monthly: Int) -> Bool {
+        guard daily >= 0, weekly >= 0, monthly >= 0 else { return false }
         targets = .init(dailyHours: daily, weeklyHours: weekly, monthlyHours: monthly)
+        return true
     }
 
     func addManualEvent(type: PresenceEventType, timestamp: Date, reason: String) {
@@ -342,6 +416,18 @@ final class AppState: ObservableObject {
         correctionAuditLog.insert(result.audit, at: 0)
     }
 
+    @discardableResult
+    func addManualSession(entry: Date, exit: Date, reason: String) -> Bool {
+        guard exit >= entry else { return false }
+        let entryResult = correctionService.addManualEvent(type: .entry, timestamp: entry, reason: reason)
+        let exitResult = correctionService.addManualEvent(type: .exit, timestamp: exit, reason: reason)
+        events.append(contentsOf: [entryResult.event, exitResult.event])
+        sortEvents()
+        correctionAuditLog.insert(exitResult.audit, at: 0)
+        correctionAuditLog.insert(entryResult.audit, at: 0)
+        return true
+    }
+
     func updateEvent(id: UUID, type: PresenceEventType, timestamp: Date, reason: String) {
         guard let result = correctionService.updateEvent(events: events, id: id, type: type, timestamp: timestamp, reason: reason) else { return }
         events = result.events
@@ -350,7 +436,7 @@ final class AppState: ObservableObject {
     }
 
     func deleteEvent(id: UUID, reason: String) {
-        let result = correctionService.deleteEvent(events: events, id: id, reason: reason)
+        guard let result = correctionService.deleteEvent(events: events, id: id, reason: reason) else { return }
         events = result.events
         correctionAuditLog.insert(result.audit, at: 0)
     }
@@ -395,11 +481,23 @@ final class AppState: ObservableObject {
         let parts = activeTargetPeriods.map { period in
             "\(shortLabel(for: period)) \(targetHours(for: period))h"
         }
-        return parts.isEmpty ? "No active target" : parts.joined(separator: " • ")
+        return parts.isEmpty
+            ? AppLocalization.text("target.none", fallback: "No active target")
+            : parts.joined(separator: " • ")
     }
 
     func progressLabel(for period: ReportPeriod) -> String {
         reportingService.progressLabel(sessions: sessionsForReporting(at: Date()), for: period, at: Date(), targets: targets)
+    }
+
+    var recentActivityRows: [String] {
+        eventsDescending
+            .prefix(4)
+            .map { trackingService.formattedActivityRow(for: $0) }
+    }
+
+    var recentActivityCount: Int {
+        events.count
     }
 
     func activeSessionElapsed(at now: Date = Date()) -> TimeInterval? {
@@ -407,6 +505,13 @@ final class AppState: ObservableObject {
             return nil
         }
         return now.timeIntervalSince(liveStart)
+    }
+
+    func handleLanguagePreferenceChanged() {
+        runRecoveryIntegrityValidation()
+        rebuildNotificationLog()
+        currentLocationMessage = ""
+        officeValidationMessage = ""
     }
 
     private func sessionsForReporting(at now: Date) -> [AttendanceSession] {
@@ -420,10 +525,13 @@ final class AppState: ObservableObject {
 
     private func latestOpenEntryTimestamp() -> Date? {
         var openEntryTimestamp: Date?
-        for event in events {
+        for event in sortedEvents {
             switch event.type {
             case .entry:
-                openEntryTimestamp = event.timestamp
+                // Keep the first unmatched entry until an exit resolves it.
+                if openEntryTimestamp == nil {
+                    openEntryTimestamp = event.timestamp
+                }
             case .exit:
                 guard let start = openEntryTimestamp, event.timestamp >= start else { continue }
                 openEntryTimestamp = nil
@@ -475,13 +583,24 @@ final class AppState: ObservableObject {
     private func refreshComputedState() {
         sessionResult = sessionEngine.build(from: events)
         eventsDescending = events.sorted(by: { $0.timestamp > $1.timestamp })
+        let shouldBeInside = latestOpenEntryTimestamp() != nil
+        if isInsideOffice != shouldBeInside {
+            isInsideOffice = shouldBeInside
+        }
     }
 
     private func sendLocalNotification(for event: PresenceEvent) {
         let content = UNMutableNotificationContent()
-        content.title = event.type == .entry ? "Office Entry Detected" : "Office Exit Detected"
+        content.title = event.type == .entry
+            ? AppLocalization.text("notification.entryTitle", fallback: "Office Entry Detected")
+            : AppLocalization.text("notification.exitTitle", fallback: "Office Exit Detected")
         let time = DateFormatter.localizedString(from: event.timestamp, dateStyle: .none, timeStyle: .short)
-        content.body = "\(event.type.rawValue) at \(time)"
+        content.body = AppLocalization.format(
+            "notification.eventAt",
+            event.type.localizedTitle,
+            time,
+            fallback: "%@ at %@"
+        )
         content.sound = .default
 
         let request = UNNotificationRequest(identifier: event.id.uuidString, content: content, trigger: nil)
@@ -507,7 +626,7 @@ final class AppState: ObservableObject {
     }
 
     private func runRecoveryIntegrityValidation() {
-        recoveryValidationMessage = "Integrity validation passed."
+        recoveryValidationMessage = AppLocalization.text("recovery.integrityPassed", fallback: "Integrity validation passed.")
     }
 
     private func loadPersistedState() {
@@ -523,14 +642,18 @@ final class AppState: ObservableObject {
             notificationPermissionDeferred = saved.notificationPermissionDeferred
             trackingNotificationsEnabled = saved.trackingNotificationsEnabled
             office = saved.office
-            officeValidationMessage = office == nil ? "No office configured." : "Office geofence configured."
+            officeValidationMessage = office == nil
+                ? AppLocalization.text("office.status.none", fallback: "No office configured.")
+                : AppLocalization.text("office.status.configured", fallback: "Office geofence configured.")
             targets = saved.targets
             events = saved.events
             correctionAuditLog = saved.correctionAuditLog
             notificationLog = saved.notificationLog
             recoveryValidationMessage = saved.recoveryValidationMessage
-            showOnboarding = saved.showOnboarding
+            showOnboarding = saved.office == nil ? saved.showOnboarding : false
             isInsideOffice = saved.isInsideOffice
+            sortEvents()
+            rebuildNotificationLog()
             runRecoveryIntegrityValidation()
         } catch {
             // Ignore malformed persisted files and start from defaults.
@@ -587,6 +710,28 @@ final class AppState: ObservableObject {
             }
         }
     }
+
+    private func rebuildNotificationLog() {
+        notificationLog = events
+            .filter { $0.source == .geofence }
+            .sorted { lhs, rhs in
+                if lhs.timestamp == rhs.timestamp { return lhs.id.uuidString < rhs.id.uuidString }
+                return lhs.timestamp > rhs.timestamp
+            }
+            .map { trackingService.formattedNotificationRow(for: $0) }
+    }
+
+    private var sortedEvents: [PresenceEvent] {
+        events.sorted { lhs, rhs in
+            if lhs.timestamp == rhs.timestamp { return lhs.id.uuidString < rhs.id.uuidString }
+            return lhs.timestamp < rhs.timestamp
+        }
+    }
+
+    private var isRecoveryValidationWarning: Bool {
+        !recoveryValidationMessage.isEmpty &&
+            recoveryValidationMessage != AppLocalization.text("recovery.integrityPassed", fallback: "Integrity validation passed.")
+    }
 }
 
 final class LocationTrackingManager: NSObject, CLLocationManagerDelegate {
@@ -623,10 +768,10 @@ final class LocationTrackingManager: NSObject, CLLocationManagerDelegate {
             manager.requestWhenInUseAuthorization()
         case .denied, .restricted:
             pendingCurrentLocationRequest = false
-            onLocationError?("Location permission is denied. Enable it in Settings.")
+            onLocationError?(AppLocalization.text("location.error.denied", fallback: "Location permission is denied. Enable it in Settings."))
         @unknown default:
             pendingCurrentLocationRequest = false
-            onLocationError?("Location permission status is unavailable.")
+            onLocationError?(AppLocalization.text("location.error.unavailable", fallback: "Location permission status is unavailable."))
         }
     }
 
@@ -642,7 +787,7 @@ final class LocationTrackingManager: NSObject, CLLocationManagerDelegate {
 
     func updateMonitoring(office: OfficeLocation?) {
         latestOffice = office
-        for region in manager.monitoredRegions {
+        for region in manager.monitoredRegions where region.identifier == monitoredIdentifier {
             manager.stopMonitoring(for: region)
         }
         manager.stopMonitoringSignificantLocationChanges()
@@ -681,7 +826,7 @@ final class LocationTrackingManager: NSObject, CLLocationManagerDelegate {
                 manager.requestLocation()
             } else if status == .denied || status == .restricted {
                 pendingCurrentLocationRequest = false
-                onLocationError?("Location permission is denied. Enable it in Settings.")
+                onLocationError?(AppLocalization.text("location.error.denied", fallback: "Location permission is denied. Enable it in Settings."))
             }
         }
     }

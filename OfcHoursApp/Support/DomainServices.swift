@@ -1,5 +1,7 @@
 import Foundation
 
+let correctionNoReasonToken = "__NO_REASON__"
+
 struct TrackingTransitionResult {
     var isInsideOffice: Bool
     var event: PresenceEvent
@@ -7,6 +9,36 @@ struct TrackingTransitionResult {
 }
 
 struct TrackingService {
+    func formattedNotificationRow(for event: PresenceEvent) -> String {
+        let time = DateFormatter.localizedString(from: event.timestamp, dateStyle: .none, timeStyle: .short)
+        return AppLocalization.format(
+            "event.detectedAt",
+            event.type.localizedTitle,
+            time,
+            fallback: "%@ detected at %@"
+        )
+    }
+
+    func formattedActivityRow(for event: PresenceEvent) -> String {
+        let time = DateFormatter.localizedString(from: event.timestamp, dateStyle: .none, timeStyle: .short)
+        switch event.source {
+        case .geofence:
+            return AppLocalization.format(
+                "event.detectedAt",
+                event.type.localizedTitle,
+                time,
+                fallback: "%@ detected at %@"
+            )
+        case .manual:
+            return AppLocalization.format(
+                "event.manualAt",
+                event.type.localizedTitle,
+                time,
+                fallback: "%@ (Manual) at %@"
+            )
+        }
+    }
+
     func processTransition(
         inside: Bool,
         isInsideOffice: Bool,
@@ -23,8 +55,7 @@ struct TrackingService {
 
         let notificationRow: String?
         if trackingNotificationsEnabled, notificationPermission == .authorizedAlways {
-            let time = DateFormatter.localizedString(from: event.timestamp, dateStyle: .none, timeStyle: .short)
-            notificationRow = "\(type.rawValue) detected at \(time)"
+            notificationRow = formattedNotificationRow(for: event)
         } else {
             notificationRow = nil
         }
@@ -50,7 +81,10 @@ struct SessionEngine {
         for event in sorted {
             switch event.type {
             case .entry:
-                openEntry = event
+                // Keep the earliest open entry until a matching exit arrives.
+                if openEntry == nil {
+                    openEntry = event
+                }
             case .exit:
                 guard let start = openEntry else { continue }
                 if event.timestamp >= start.timestamp {
@@ -104,7 +138,14 @@ struct ReportingService {
         let targetMinutes = targetHoursValue * 60
         let variance = minutes - targetMinutes
         let sign = variance >= 0 ? "+" : ""
-        return "\(String(format: "%.1f", Double(minutes)/60.0))h / \(targetHoursValue)h (\(sign)\(String(format: "%.1f", Double(variance)/60.0))h)"
+        return AppLocalization.format(
+            "report.progressFormat",
+            String(format: "%.1f", Double(minutes)/60.0),
+            targetHoursValue,
+            sign,
+            String(format: "%.1f", Double(variance)/60.0),
+            fallback: "%@h / %dh (%@%@h)"
+        )
     }
 }
 
@@ -116,7 +157,7 @@ struct CorrectionService {
             timestamp: Date(),
             action: .add,
             eventID: event.id,
-            reason: cleanReason.isEmpty ? "No reason provided" : cleanReason
+            reason: cleanReason.isEmpty ? correctionNoReasonToken : cleanReason
         )
         return (event, audit)
     }
@@ -141,19 +182,20 @@ struct CorrectionService {
             timestamp: Date(),
             action: .edit,
             eventID: id,
-            reason: cleanReason.isEmpty ? "No reason provided" : cleanReason
+            reason: cleanReason.isEmpty ? correctionNoReasonToken : cleanReason
         )
         return (updatedEvents, audit)
     }
 
-    func deleteEvent(events: [PresenceEvent], id: UUID, reason: String) -> (events: [PresenceEvent], audit: CorrectionAuditEntry) {
+    func deleteEvent(events: [PresenceEvent], id: UUID, reason: String) -> (events: [PresenceEvent], audit: CorrectionAuditEntry)? {
+        guard events.contains(where: { $0.id == id }) else { return nil }
         let cleanReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         let updatedEvents = events.filter { $0.id != id }
         let audit = CorrectionAuditEntry(
             timestamp: Date(),
             action: .delete,
             eventID: id,
-            reason: cleanReason.isEmpty ? "No reason provided" : cleanReason
+            reason: cleanReason.isEmpty ? correctionNoReasonToken : cleanReason
         )
         return (updatedEvents, audit)
     }

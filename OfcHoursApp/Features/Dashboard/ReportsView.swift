@@ -3,7 +3,11 @@ import SwiftUI
 struct ReportsView: View {
     @EnvironmentObject private var state: AppState
     @State private var reveal = false
-    private let calendar = Calendar.current
+    private var calendar: Calendar {
+        var value = Calendar.current
+        value.locale = AppLocalization.locale()
+        return value
+    }
 
     private var availablePeriods: [ReportPeriod] {
         state.activeTargetPeriods.isEmpty ? ReportPeriod.allCases : state.activeTargetPeriods
@@ -77,7 +81,7 @@ struct ReportsView: View {
 
             Picker("Period", selection: $state.selectedReportPeriod) {
                 ForEach(availablePeriods, id: \.self) { period in
-                    Text(period.rawValue).tag(period)
+                    Text(period.localizedTitle).tag(period)
                 }
             }
             .pickerStyle(.segmented)
@@ -99,6 +103,17 @@ struct ReportsView: View {
             Text(currentMonthTitle)
                 .font(AppTypography.heading(20))
                 .foregroundStyle(AppPalette.textPrimary)
+
+            HStack(spacing: 8) {
+                sourceLegendBadge(
+                    title: AppLocalization.text("reports.calendar.auto", fallback: "Auto"),
+                    color: AppPalette.neonAmber
+                )
+                sourceLegendBadge(
+                    title: AppLocalization.text("reports.calendar.manual", fallback: "Manual"),
+                    color: AppPalette.neonMint
+                )
+            }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
                 ForEach(weekdaySymbols, id: \.self) { symbol in
@@ -136,6 +151,31 @@ struct ReportsView: View {
                         .foregroundStyle(cell.minutes > 0 ? AppPalette.neonAmber : AppPalette.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
+
+                    if cell.geofenceEventCount > 0 || cell.manualEventCount > 0 {
+                        HStack(spacing: 3) {
+                            if cell.geofenceEventCount > 0 {
+                                eventCountBadge(
+                                    label: AppLocalization.format(
+                                        "reports.calendar.autoBadge",
+                                        cell.geofenceEventCount,
+                                        fallback: "A:%d"
+                                    ),
+                                    color: AppPalette.neonAmber
+                                )
+                            }
+                            if cell.manualEventCount > 0 {
+                                eventCountBadge(
+                                    label: AppLocalization.format(
+                                        "reports.calendar.manualBadge",
+                                        cell.manualEventCount,
+                                        fallback: "M:%d"
+                                    ),
+                                    color: AppPalette.neonMint
+                                )
+                            }
+                        }
+                    }
                 }
                 .padding(.horizontal, 2)
             }
@@ -146,16 +186,22 @@ struct ReportsView: View {
     private var statsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if state.activeTargetPeriods.isEmpty {
-                metricCard(title: "Targets", icon: "target", value: "No active target set")
+                metricCard(
+                    title: AppLocalization.text("dashboard.targets", fallback: "Targets"),
+                    icon: "target",
+                    value: AppLocalization.text("dashboard.targets.none", fallback: "No active target set")
+                )
             } else {
                 ForEach(state.activeTargetPeriods, id: \.self) { period in
-                    metricCard(title: period.rawValue, icon: icon(for: period), value: state.progressLabel(for: period))
+                    metricCard(title: period.localizedTitle, icon: icon(for: period), value: state.progressLabel(for: period))
                 }
             }
             metricCard(
-                title: "Tracking",
+                title: AppLocalization.text("dashboard.tracking", fallback: "Tracking"),
                 icon: "dot.radiowaves.left.and.right",
-                value: state.isTrackingReady ? "Auto tracking active" : "Setup required"
+                value: state.isTrackingReady
+                    ? AppLocalization.text("reports.tracking.active", fallback: "Auto tracking active")
+                    : AppLocalization.text("dashboard.readiness.required", fallback: "Setup required")
             )
         }
     }
@@ -171,6 +217,7 @@ struct ReportsView: View {
     private var currentMonthTitle: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "LLLL yyyy"
+        formatter.locale = AppLocalization.locale()
         return formatter.string(from: Date())
     }
 
@@ -192,30 +239,79 @@ struct ReportsView: View {
 
         var cells: [CalendarCell] = []
         for index in 0..<leadingEmptyCount {
-            cells.append(CalendarCell(id: "empty-\(index)", day: nil, date: nil, minutes: 0, isToday: false))
+            cells.append(
+                CalendarCell(
+                    id: "empty-\(index)",
+                    day: nil,
+                    date: nil,
+                    minutes: 0,
+                    isToday: false,
+                    geofenceEventCount: 0,
+                    manualEventCount: 0
+                )
+            )
         }
 
+        let dayEventCounts = eventCountsByDay
         for day in dayRange {
             guard let date = calendar.date(byAdding: .day, value: day - 1, to: monthInterval.start) else { continue }
             let minutes = state.trackedMinutes(for: .day, at: date)
             let isToday = calendar.isDate(date, inSameDayAs: now)
-            cells.append(CalendarCell(id: "day-\(day)", day: day, date: date, minutes: minutes, isToday: isToday))
+            let normalized = calendar.startOfDay(for: date)
+            let counts = dayEventCounts[normalized] ?? (geofence: 0, manual: 0)
+            cells.append(
+                CalendarCell(
+                    id: "day-\(day)",
+                    day: day,
+                    date: date,
+                    minutes: minutes,
+                    isToday: isToday,
+                    geofenceEventCount: counts.geofence,
+                    manualEventCount: counts.manual
+                )
+            )
         }
 
         let trailing = (7 - (cells.count % 7)) % 7
         for index in 0..<trailing {
-            cells.append(CalendarCell(id: "tail-\(index)", day: nil, date: nil, minutes: 0, isToday: false))
+            cells.append(
+                CalendarCell(
+                    id: "tail-\(index)",
+                    day: nil,
+                    date: nil,
+                    minutes: 0,
+                    isToday: false,
+                    geofenceEventCount: 0,
+                    manualEventCount: 0
+                )
+            )
         }
         return cells
+    }
+
+    private var eventCountsByDay: [Date: (geofence: Int, manual: Int)] {
+        var counts: [Date: (geofence: Int, manual: Int)] = [:]
+        for event in state.events {
+            let day = calendar.startOfDay(for: event.timestamp)
+            var value = counts[day] ?? (geofence: 0, manual: 0)
+            switch event.source {
+            case .geofence:
+                value.geofence += 1
+            case .manual:
+                value.manual += 1
+            }
+            counts[day] = value
+        }
+        return counts
     }
 
     private func formattedHours(minutes: Int) -> String {
         let hours = minutes / 60
         let remainder = minutes % 60
         if remainder == 0 {
-            return "\(hours)h"
+            return AppLocalization.format("reports.hoursOnly", hours, fallback: "%dh")
         }
-        return "\(hours)h \(remainder)m"
+        return AppLocalization.format("reports.hoursMinutes", hours, remainder, fallback: "%dh %dm")
     }
 
     private var alertsCard: some View {
@@ -270,6 +366,35 @@ struct ReportsView: View {
                 .stroke(AppPalette.neonCyan.opacity(0.16), lineWidth: 1)
         )
     }
+
+    private func sourceLegendBadge(title: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Text(title)
+                .font(AppTypography.mono(10))
+                .foregroundStyle(AppPalette.textSecondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(AppPalette.panelSoft.opacity(0.75))
+        )
+    }
+
+    private func eventCountBadge(label: String, color: Color) -> some View {
+        Text(label)
+            .font(AppTypography.mono(8))
+            .foregroundStyle(color)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(color.opacity(0.16))
+            )
+    }
 }
 
 private struct CalendarCell: Identifiable {
@@ -278,4 +403,6 @@ private struct CalendarCell: Identifiable {
     let date: Date?
     let minutes: Int
     let isToday: Bool
+    let geofenceEventCount: Int
+    let manualEventCount: Int
 }

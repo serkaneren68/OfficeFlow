@@ -26,11 +26,33 @@ enum PermissionState: String, CaseIterable, Codable {
             self = .notDetermined
         }
     }
+
+    var localizedTitle: String {
+        switch self {
+        case .notDetermined:
+            return AppLocalization.text("permission.notDetermined", fallback: "Not Determined")
+        case .authorizedWhenInUse:
+            return AppLocalization.text("permission.authorizedWhenInUse", fallback: "Authorized (When In Use)")
+        case .authorizedAlways:
+            return AppLocalization.text("permission.authorizedAlways", fallback: "Authorized (Always)")
+        case .denied:
+            return AppLocalization.text("permission.denied", fallback: "Denied")
+        }
+    }
 }
 
 enum PresenceEventType: String, Codable, CaseIterable {
     case entry = "Entry"
     case exit = "Exit"
+
+    var localizedTitle: String {
+        switch self {
+        case .entry:
+            return AppLocalization.text("event.entry", fallback: "Entry")
+        case .exit:
+            return AppLocalization.text("event.exit", fallback: "Exit")
+        }
+    }
 }
 
 enum EventSource: String, Codable {
@@ -90,6 +112,17 @@ enum CorrectionAction: String, Codable {
     case add
     case edit
     case delete
+
+    var localizedTitle: String {
+        switch self {
+        case .add:
+            return AppLocalization.text("correction.add", fallback: "Add")
+        case .edit:
+            return AppLocalization.text("correction.edit", fallback: "Edit")
+        case .delete:
+            return AppLocalization.text("correction.delete", fallback: "Delete")
+        }
+    }
 }
 
 struct CorrectionAuditEntry: Identifiable, Codable {
@@ -104,4 +137,15 @@ enum ReportPeriod: String, CaseIterable {
     case day = "Day"
     case week = "Week"
     case month = "Month"
+
+    var localizedTitle: String {
+        switch self {
+        case .day:
+            return AppLocalization.text("period.day", fallback: "Day")
+        case .week:
+            return AppLocalization.text("period.week", fallback: "Week")
+        case .month:
+            return AppLocalization.text("period.month", fallback: "Month")
+        }
+    }
 }

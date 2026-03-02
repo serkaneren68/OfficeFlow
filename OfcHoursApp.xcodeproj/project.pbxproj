@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		C9DD4FD92F47E3840039F92B /* OfcHoursApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = OfcHoursApp.app; path = OfficeFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9DD4FD92F47E3840039F92B /* OfficeFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OfficeFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -40,7 +40,7 @@
 		C9DD4FDA2F47E3840039F92B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C9DD4FD92F47E3840039F92B /* OfcHoursApp.app */,
+				C9DD4FD92F47E3840039F92B /* OfficeFlow.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,7 +67,7 @@
 			packageProductDependencies = (
 			);
 			productName = OfcHoursApp;
-			productReference = C9DD4FD92F47E3840039F92B /* OfcHoursApp.app */;
+			productReference = C9DD4FD92F47E3840039F92B /* OfficeFlow.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -91,6 +91,7 @@
 			knownRegions = (
 				en,
 				Base,
+				tr,
 			);
 			mainGroup = C9DD4FD02F47E3840039F92B;
 			minimizedProjectReferenceProxies = 1;
@@ -256,9 +257,10 @@
 				DEVELOPMENT_TEAM = X67X63T5SG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = OfficeFlow;
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "OfficeFlow needs your location to automatically detect office entry and exit.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OfficeFlow uses location to detect when you are at your office.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Office Hours";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Office Hours needs your location to automatically detect office entry and exit.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Office Hours uses location to detect when you are at your office.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = location;
@@ -292,9 +294,10 @@
 				DEVELOPMENT_TEAM = X67X63T5SG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = OfficeFlow;
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "OfficeFlow needs your location to automatically detect office entry and exit.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OfficeFlow uses location to detect when you are at your office.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Office Hours";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Office Hours needs your location to automatically detect office entry and exit.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Office Hours uses location to detect when you are at your office.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = location;

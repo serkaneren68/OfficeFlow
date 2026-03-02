@@ -6,6 +6,7 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.openURL) private var openURL
+    @AppStorage(AppLocalization.languagePreferenceKey) private var preferredLanguageCode: String = SupportedLanguage.system.rawValue
     @State private var showResetConfirmation = false
 
     var body: some View {
@@ -18,6 +19,7 @@ struct SettingsView: View {
                         overviewCard
                         permissionsCard
                         configurationCard
+                        languageCard
                         dataCard
                         privacyCard
                     }
@@ -69,7 +71,7 @@ struct SettingsView: View {
 
             permissionRow(
                 title: "Location",
-                stateText: state.locationPermission.rawValue,
+                stateText: state.locationPermission.localizedTitle,
                 isDeferred: state.locationPermissionDeferred,
                 requestTitle: "Request Always",
                 requestAction: state.requestLocationPermission,
@@ -81,13 +83,29 @@ struct SettingsView: View {
 
             permissionRow(
                 title: "Notifications",
-                stateText: state.notificationPermission.rawValue,
+                stateText: state.notificationPermission.localizedTitle,
                 isDeferred: state.notificationPermissionDeferred,
                 requestTitle: "Request Notifications",
                 requestAction: state.requestNotificationPermission,
                 deferAction: state.deferNotificationPermission,
                 guidance: state.notificationSettingsGuidance()
             )
+        }
+        .neonCard()
+    }
+
+    private var languageCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Language")
+            Picker("Language", selection: $preferredLanguageCode) {
+                ForEach(SupportedLanguage.allCases) { language in
+                    Text(AppLocalization.text(language.titleKey, fallback: language.fallbackTitle)).tag(language.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            Text("You can switch between English and Turkish anytime.")
+                .font(AppTypography.body(13))
+                .foregroundStyle(AppPalette.textSecondary)
         }
         .neonCard()
     }
@@ -177,7 +195,7 @@ struct SettingsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(title)
+                Text(AppLocalization.text(title, fallback: title))
                     .font(AppTypography.heading(16))
                     .foregroundStyle(AppPalette.textPrimary)
                 Spacer()
@@ -193,9 +211,9 @@ struct SettingsView: View {
             }
 
             HStack(spacing: 8) {
-                buttonChip(title: requestTitle, color: AppPalette.neonCyan, action: requestAction)
-                buttonChip(title: "Defer", color: AppPalette.neonAmber, action: deferAction)
-                buttonChip(title: "Open Settings", color: AppPalette.neonMint) {
+                buttonChip(title: AppLocalization.text(requestTitle, fallback: requestTitle), color: AppPalette.neonCyan, action: requestAction)
+                buttonChip(title: AppLocalization.text("Defer", fallback: "Defer"), color: AppPalette.neonAmber, action: deferAction)
+                buttonChip(title: AppLocalization.text("Open Settings", fallback: "Open Settings"), color: AppPalette.neonMint) {
                     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
                     openURL(url)
                 }
@@ -213,7 +231,7 @@ struct SettingsView: View {
                 .font(.title3)
                 .foregroundStyle(AppPalette.neonCyan)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(AppLocalization.text(title, fallback: title))
                     .font(AppTypography.heading(16))
                     .foregroundStyle(AppPalette.textPrimary)
                 Text(subtitle)
@@ -248,22 +266,28 @@ struct SettingsView: View {
     }
 
     private func sectionTitle(_ text: String) -> some View {
-        Text(text.uppercased())
+        Text(AppLocalization.text(text, fallback: text).uppercased())
             .font(AppTypography.mono(12))
             .foregroundStyle(AppPalette.neonCyan)
     }
 
     private var trackingGuidance: String {
         if state.isTrackingReady {
-            return "Background entry/exit detection is active."
+            return AppLocalization.text("settings.tracking.active", fallback: "Background entry/exit detection is active.")
         }
         if state.office == nil {
-            return "Set your office geofence to start automatic tracking."
+            return AppLocalization.text("settings.tracking.officeMissing", fallback: "Set your office geofence to start automatic tracking.")
         }
         if state.locationPermission == .authorizedWhenInUse {
-            return "Location is limited to foreground. Grant Always for background tracking."
+            return AppLocalization.text(
+                "settings.tracking.foregroundOnly",
+                fallback: "Location is limited to foreground. Grant Always for background tracking."
+            )
         }
-        return "Grant location and notification permissions for full tracking."
+        return AppLocalization.text(
+            "settings.tracking.permissionsMissing",
+            fallback: "Grant location and notification permissions for full tracking."
+        )
     }
 
 }
@@ -309,7 +333,10 @@ struct OfficeGeofenceSettingsView: View {
                     .onTapGesture(coordinateSpace: .local) { point in
                         guard let coordinate = proxy.convert(point, from: .local) else { return }
                         selectCoordinate(coordinate)
-                        state.officeValidationMessage = "Office location selected from map."
+                        state.officeValidationMessage = AppLocalization.text(
+                            "office.status.selectedFromMap",
+                            fallback: "Office location selected from map."
+                        )
                     }
                 }
 
@@ -357,7 +384,10 @@ struct OfficeGeofenceSettingsView: View {
             Section("Save") {
                 Button("Save Geofence") {
                     guard let parsedLatitude = Double(latitude), let parsedLongitude = Double(longitude), let parsedRadius = Double(radius) else {
-                        state.officeValidationMessage = "Latitude, longitude, and radius must be numeric."
+                        state.officeValidationMessage = AppLocalization.text(
+                            "office.error.numericRequired",
+                            fallback: "Latitude, longitude, and radius must be numeric."
+                        )
                         return
                     }
                     state.saveOffice(
@@ -450,6 +480,7 @@ struct TargetSettingsView: View {
     @State private var daily: String = ""
     @State private var weekly: String = ""
     @State private var monthly: String = ""
+    @State private var validationMessage: String = ""
     @FocusState private var focusedField: Field?
 
     var body: some View {
@@ -477,11 +508,25 @@ struct TargetSettingsView: View {
 
                     Button {
                         focusedField = nil
-                        state.updateTargets(
-                            daily: Int(daily) ?? -1,
-                            weekly: Int(weekly) ?? -1,
-                            monthly: Int(monthly) ?? -1
+                        guard
+                            let parsedDaily = Int(daily),
+                            let parsedWeekly = Int(weekly),
+                            let parsedMonthly = Int(monthly)
+                        else {
+                            validationMessage = AppLocalization.text(
+                                "targets.error.numericRequired",
+                                fallback: "Daily, weekly, and monthly targets must be numeric."
+                            )
+                            return
+                        }
+                        let saved = state.updateTargets(
+                            daily: parsedDaily,
+                            weekly: parsedWeekly,
+                            monthly: parsedMonthly
                         )
+                        validationMessage = saved
+                            ? AppLocalization.text("targets.status.saved", fallback: "Targets saved.")
+                            : AppLocalization.text("targets.error.invalid", fallback: "Target values are invalid.")
                     } label: {
                         Text("Save Targets")
                             .font(AppTypography.heading(16))
@@ -495,6 +540,12 @@ struct TargetSettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .neonCard()
+
+                    if !validationMessage.isEmpty {
+                        Text(validationMessage)
+                            .font(AppTypography.body(13))
+                            .foregroundStyle(AppPalette.textSecondary)
+                    }
                 }
                 .padding()
             }
@@ -516,6 +567,7 @@ struct TargetSettingsView: View {
             daily = String(state.targets.dailyHours)
             weekly = String(state.targets.weeklyHours)
             monthly = String(state.targets.monthlyHours)
+            validationMessage = ""
         }
     }
 
